@@ -1,0 +1,340 @@
+# Data Science job postings on Glassdoor - EDA
+
+### Importing Libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+#2 lines below for html export
+import plotly.io as pio 
+pio.renderers.default = 'notebook'
+
+#2 lines below for PDF export
+!pip install Pyppeteer
+!pyppeteer-install
+
+### Reading the file
+df = pd.read_csv('Uncleaned_DS_jobs.csv')
+df.head(3)
+df.info()
+#provides a concise summary of the DataFrame.
+
+### Finding if there is any missing value in the dataset
+any_null_columns = df.isnull().any()
+print(any_null_columns)
+
+### Index Column
+#dropping this column as it used as serial number. (can affect the analysis)
+df.drop(columns=['index'], inplace=True)
+df.head(3)
+
+### Job Title Column
+df['Job Title'].unique()
+
+### Salary Estimate Column
+df['Salary Estimate'].unique()
+
+#function to separate the upper limit and lower limit of the salary
+def salary_to_numeric(salary_range):
+    salary_range = salary_range.replace('K', '')  # Remove 'K'
+    salary_range = salary_range.split('-')  # Split into low and high values
+    low_salary = int(salary_range[0][1:]) * 1000  # Convert to numeric value in thousands
+    
+    high_salary = salary_range[1].split()[0]
+    if high_salary.isdigit():  # Check if the high salary is a valid integer
+        high_salary = int(high_salary) * 1000  # Convert to numeric value in thousands
+    else:
+        high_salary = low_salary  # If the high salary is not a valid integer, use the low salary value as a fallback
+    
+    return low_salary, high_salary
+
+#Apply the function to the 'Salary Estimate' column and create two new columns for low and high salaries
+df[['Low_Salary_in_dollar', 'High_Salary_in_dollar']] = df['Salary Estimate'].apply(salary_to_numeric).tolist()
+df[['Low_Salary_in_dollar', 'High_Salary_in_dollar']]
+
+### Job Description Column
+#dropping this column
+df.drop(columns=['Job Description'], inplace=True)
+
+### Rating Column
+df['Rating'].unique()
+
+#the Scale for rating is 0 to 5
+#Replace '-1' with NaN 
+df['Rating'] = df['Rating'].replace(-1.0, np.nan).round(1)
+#Printing the unique values in the 'Rating' column
+unique_ratings = df['Rating'].unique()
+df['Rating'].unique()
+
+### Company Name Column
+
+df['Company Name'].unique()
+#removing '\n' and number from company name
+def remove_newline_and_number(value):
+    return value.split('\n')[0]
+
+#Apply the function to each element in the data array
+df['Company Name'] = list(map(remove_newline_and_number, df['Company Name']))
+df['Company Name']
+
+### Location Column
+
+df['Location'].unique()
+
+### Headquarters Column
+#dropping this column
+df.drop(columns=['Headquarters'], inplace=True)
+
+### Size Column
+df['Size'].unique()
+
+#Replacing '-1' and 'Unknown' with NaN
+df['Size'].replace(['-1', 'Unknown'], np.nan, inplace=True)
+df['Size'].unique()
+
+### Founded Column
+df['Founded'].unique()
+
+### Type of ownership Column
+df['Type of ownership'].unique()
+#Replacing '-1' with NaN
+df['Type of ownership'].replace(['-1', 'Unknown'], np.nan, inplace=True)
+df['Type of ownership'].unique()
+
+### Industry Column
+df['Industry'].unique()
+#Replacing '-1' with NaN
+df['Industry'].replace(['-1'], np.nan, inplace=True)
+df['Industry'].unique()
+
+### Sector Column
+df['Sector'].unique()
+#Replacing '-1' with NaN
+df['Sector'].replace(['-1'], np.nan, inplace=True)
+df['Sector'].unique()
+
+### Revenue Column
+df['Revenue'].unique()
+#Replacing '-1' with NaN
+df['Revenue'].replace(['-1','Unknown / Non-Applicable'], np.nan, inplace=True)
+df['Revenue'].unique()
+
+
+### Exploratory Data Analysis(EDA)
+- ****Identifying the categorical data types****
+
+#Get the data types of each column in the dataset
+data_types = df.dtypes
+
+#Identify columns with object or categorical data type
+categorical_columns = data_types[data_types == 'object'].index.tolist()
+
+print("Categorical Columns:")
+print(categorical_columns)
+
+- ****Finding the value count of categorical columns****
+
+#Select categorical columns for analysis
+categorical_columns = ['Size', 'Type of ownership', 'Industry', 'Sector', 'Revenue', 'Location']
+
+#Get unique values and their counts in each categorical column
+for col in categorical_columns:
+value_counts = df[col].value_counts()
+print(f"\\nValue counts in '{col}':")
+print(value_counts)
+
+- ****Identifying the Numerical data types****
+
+#Get the data types of each column in the dataset
+data_types = df.dtypes
+
+#Identify columns with int64 or float64 data type
+numerical_columns = df.select_dtypes(include=['float64', 'int64'])
+
+print("Numerical Columns:")
+print(numerical_columns)
+
+- ****Finding skewness and kurtosis for Rating****
+
+#Calculate skewness and kurtosis for each numerical column
+skewness = df['Rating'].skew()
+kurtosis = df['Rating'].kurt()
+
+#Count the frequency of each unique value in the column
+value_counts = df['Rating'].value_counts()
+
+#Plot the bar graph
+plt.figure(figsize=(10, 6))
+sns.barplot(x=value_counts.index, y=value_counts.values)
+plt.xlabel('Rating')
+plt.ylabel('Frequency')
+plt.title(f'Bar Graph of Rating')
+plt.xticks(rotation=90)
+
+plt.grid(True)
+
+#Calculate and print skewness and kurtosis
+skewness = df['Rating'].skew()
+kurtosis = df['Rating'].kurtosis()
+print(f"Skewness: {skewness}")
+print(f"Kurtosis: {kurtosis}")
+
+#Show the plot
+plt.show()
+
+- ****Finding skewness and kurtosis for High_Salary_in_dollar(Upper limit of salary)****
+
+#Calculate skewness and kurtosis
+skewness = df['High_Salary_in_dollar'].skew()
+kurtosis = df['High_Salary_in_dollar'].kurt()
+
+#Count the frequency of each unique value in the column
+value_counts = df['High_Salary_in_dollar'].value_counts()
+
+#Plot the bar graph
+plt.figure(figsize=(10, 6))
+sns.barplot(x=value_counts.index, y=value_counts.values)
+plt.xlabel('High_Salary_in_dollar')
+plt.ylabel('Frequency')
+plt.title(f'Bar Graph of High_Salary_in_dollar')
+plt.xticks(rotation=90)
+plt.grid(True)
+
+#Calculate and print skewness and kurtosis
+skewness = df['High_Salary_in_dollar'].skew()
+kurtosis = df['High_Salary_in_dollar'].kurtosis()
+print(f"Skewness: {skewness}")
+print(f"Kurtosis: {kurtosis}")
+
+#Show the plot
+plt.show()
+
+- **Finding Outliers for High_Salary_in_dollar(Upper limit of salary) and Rating**
+
+#Visualize the distribution of 'High-Salary-in-dollar' box plot
+plt.subplot(1, 2, 2)
+sns.boxplot(x=df['High_Salary_in_dollar'])
+plt.title('Box Plot of High_Salary_in_dollar')
+plt.xlabel('High_Salary_in_dollar')
+
+plt.show()
+
+#Visualize the distribution of 'Rating' using a histogram and box plot
+plt.subplot(1, 2, 2)
+sns.boxplot(x=df['Rating'])
+plt.title('Box Plot of Ratings')
+plt.xlabel('Rating')
+
+plt.show()
+
+- ****Finding relationship between rating and salary paid****
+
+ratings = df['Rating']
+salaries = df['High_Salary_in_dollar']
+
+#Create a scatter plot to visualize the relationship between ratings and salaries
+plt.figure(figsize=(8, 6))
+plt.scatter(ratings, salaries, alpha=0.5)
+plt.title('Relationship between Ratings and High_Salary_in_dollar')
+plt.xlabel('Ratings')
+plt.ylabel('High_Salary_in_dollar')
+plt.grid(True)
+plt.show()
+
+#Calculate the correlation coefficient between ratings and salaries
+correlation_coefficient = ratings.corr(salaries)
+print("Correlation Coefficient:", correlation_coefficient)
+
+- ****How does the salary vary across different locations?****
+
+salary_by_location = df.groupby('Location')['High_Salary_in_dollar'].agg(['mean', 'median', 'min', 'max'])
+
+#Set the option to display all rows and columns
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+
+print("\nSalary Variation by Location:")
+print(salary_by_location.to_string())
+
+- ****Finding salary with respect to the industry****
+
+#Group the data by 'Industry' and calculate summary statistics of salary for each industry
+salary_by_industry = df.groupby('Industry')['High_Salary_in_dollar'].agg(['mean'])
+
+#Create a bar chart for mean salary by industry
+plt.figure(figsize=(12, 6))  # Adjust the figure size as needed
+salary_by_industry['mean'].plot(kind='bar', color='skyblue')
+plt.xlabel('Industry')
+plt.ylabel('Mean Salary')
+plt.title('Mean Salary by Industry')
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.show()
+
+- ****How do ratings vary between different sectors?****
+
+#Group the data by 'Sector' and calculate summary statistics of ratings for each sector
+ratings_by_sector = df.groupby('Sector')['Rating'].agg(['mean', 'median', 'min', 'max'])
+
+#Create a bar chart for mean ratings by sector
+plt.figure(figsize=(12, 6))  # Adjust the figure size as needed
+ratings_by_sector['mean'].plot(kind='bar', color='green')
+plt.xlabel('Sector')
+plt.ylabel('Mean Rating')
+plt.title('Mean Ratings by Sector')
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.show()
+
+- ****Finding relationship rating and type of ownership****
+
+#Group the data by 'Type of ownership' and calculate summary statistics of ratings for each type of ownership
+ratings_by_ownership = df.groupby('Type of ownership')['Rating'].agg(['mean', 'median', 'min', 'max'])
+
+#Create a bar chart for mean ratings by type of ownership
+plt.figure(figsize=(12, 6))  # Adjust the figure size as needed
+ratings_by_ownership['mean'].plot(kind='bar', color='lightblue')
+plt.xlabel('Type of Ownership')
+plt.ylabel('Mean Rating')
+plt.title('Mean Ratings by Type of Ownership')
+plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+plt.show()
+
+- ****Which companies have the most job postings in the dataset?****
+
+#Perform a frequency count of each unique company name
+company_job_postings_count = df['Company Name'].value_counts()
+
+#Get the companies with the highest job posting counts
+companies_with_most_job_postings = company_job_postings_count.head()
+
+print("Companies with the Most Job Postings:")
+print(companies_with_most_job_postings)
+
+- ****Compare Industry with respect to salary and rating****
+
+#Group the data by 'Industry' and calculate metrics within each group
+grouped_data = df.groupby('Industry')
+metrics_within_groups = grouped_data.agg({
+'High_Salary_in_dollar': 'mean',
+'Rating': 'mean'
+})
+
+#Create a bar chart to visualize the mean salary and mean rating within each industry
+plt.figure(figsize=(12, 6))
+
+#Plot mean salary
+plt.bar(metrics_within_groups.index, metrics_within_groups['High_Salary_in_dollar'], color='lightblue', label='Mean Salary')
+plt.xlabel('Industry')
+plt.ylabel('Mean Salary')
+plt.xticks(rotation=90)
+
+#Create a secondary y-axis for mean rating
+plt.twinx()
+plt.plot(metrics_within_groups.index, metrics_within_groups['Rating'], marker='o', color='orange', label='Mean Rating')
+plt.ylabel('Mean Rating')
+
+plt.title('Mean Salary and Mean Rating by Industry')
+plt.legend(loc='upper left')
+plt.show()
+
+
